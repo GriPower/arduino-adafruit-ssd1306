@@ -447,6 +447,107 @@ void Adafruit_SSD1306::dim(boolean dim) {
   ssd1306_command(contrast);
 }
 
+
+
+
+
+
+
+
+
+
+void Adafruit_SSD1306::display(void) {
+
+    ssd1306_command(0x0);  // low col = 0
+    ssd1306_command(0x0);  // hi col = 0
+    ssd1306_command(0x0); // line #0
+
+
+
+
+    //Serial.println(TWBR, DEC);
+    //Serial.println(TWSR & 0x3, DEC);
+
+    // I2C
+    //height >>= 3;
+    //width >>= 3;
+    byte height=64;
+    byte width=132;
+    byte m_row = 0;
+    byte m_col = 2;
+
+
+    height >>= 3;
+    width >>= 3;
+    //Serial.println(width);
+
+    int p = 0;
+
+    byte i, j, k =0;
+
+    if(sid != -1)
+    {
+
+        for ( i = 0; i < height; i++) {
+
+        // send a bunch of data in one xmission
+        ssd1306_command(0xB0 + i + m_row);//set page address
+        ssd1306_command(m_col & 0xf);//set lower column address
+        ssd1306_command(0x10 | (m_col >> 4));//set higher column address
+
+        for( j = 0; j < 8; j++){
+            // SPI
+            *csport |= cspinmask;
+            *dcport |= dcpinmask;
+            *csport &= ~cspinmask;
+
+            for ( k = 0; k < width; k++, p++) {
+                    fastSPIwrite(buffer[p]);
+            }
+            *csport |= cspinmask;
+        }
+        }
+
+    }
+    else{
+
+     // save I2C bitrate
+    #ifndef __SAM3X8E__
+            uint8_t twbrbackup = TWBR;
+            TWBR = 12; // upgrade to 400KHz!
+    #endif
+
+    for ( i = 0; i < height; i++) {
+
+        // send a bunch of data in one xmission
+        ssd1306_command(0xB0 + i + m_row);//set page address
+        ssd1306_command(m_col & 0xf);//set lower column address
+        ssd1306_command(0x10 | (m_col >> 4));//set higher column address
+
+        for( j = 0; j < 8; j++){
+            Wire.beginTransmission(_i2caddr);
+            Wire.write(0x40);
+            for ( k = 0; k < width; k++, p++) {
+        Wire.write(buffer[p]);
+            }
+            Wire.endTransmission();
+            }
+    }
+
+    #ifndef __SAM3X8E__
+            TWBR = twbrbackup;
+    #endif
+    }
+}
+
+
+
+
+
+
+
+
+/*
 void Adafruit_SSD1306::display(void) {
   ssd1306_command(SSD1306_COLUMNADDR);
   ssd1306_command(0);   // Column start address (0 = reset)
@@ -514,6 +615,9 @@ void Adafruit_SSD1306::display(void) {
 #endif
   }
 }
+*/
+
+
 
 // clear everything
 void Adafruit_SSD1306::clearDisplay(void) {
